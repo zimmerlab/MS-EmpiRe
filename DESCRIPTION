@@ -1,0 +1,19 @@
+Package: msEmpiRe
+Type: Package
+Title: MS-EmpiRe - Mass Spectrometry analysis using Empirical and Replicate based statistics
+Version: 0.1.0
+Authors@R: c(
+  person("Gergely", "Csaba", rol=c("aut"), email="csaba@bio.ifi.lmu.de"),
+  person("Constantin", "Ammar", rol=c("aut"), email="ammar@bio.ifi.lmu.de"),
+  person("Markus", "Gruber", rol=c("aut"), email="gruber@bio.ifi.lmu.de"),
+  person("Ralf", "Zimmer", rol=c("aut"), email="zimmer@bio.ifi.lmu.de"))
+Author: Constantin Ammar [aut],
+        Gergely Csaba [aut],
+        Markus Gruber [aut],
+        Ralf Zimmer [aut]
+Maintainer: Markus Gruber <gruber@bio.ifi.lmu.de>
+Description: to come
+License: AGPL (>=3)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.0
