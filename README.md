@@ -11,7 +11,7 @@ abundant proteins between different experimental conditions.
 
 ### Dependencies
 
-MS-EmpiRe requires the R package `Biobase` from [Bioconductor] https://www.bioconductor.org.
+MS-EmpiRe requires the R package `Biobase` from [Bioconductor](https://www.bioconductor.org).
 `Biobase` can be installed from the R command line using the following
 commands:
 
