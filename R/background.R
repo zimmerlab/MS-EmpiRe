@@ -31,7 +31,7 @@ num_var <-function(pair)
 }
 
 #' @export
-generate_distribution <- function(pair, SD=NULL, N=100000, out.dir=NULL)
+generate_distribution <- function(pair, SD=NULL, N=100000, out.dir=NULL, with.Z=T)
 {
     if(is.null(SD))
     {
@@ -42,18 +42,23 @@ generate_distribution <- function(pair, SD=NULL, N=100000, out.dir=NULL)
     c1 <- matrix(rnorm(N * pair[1], 0, SD), nrow=N, ncol=pair[1])
     c2 <- matrix(rnorm(N * pair[2], 0, SD), nrow=N, ncol=pair[2])
 
-    c11 <- matrix(rnorm(N * pair[1], 0, 0.5 * SD), nrow=N, ncol=pair[1])
-    c21 <- matrix(rnorm(N * pair[2], 0, 0.5 * SD), nrow=N, ncol=pair[2])
-
-
     pairs <- t(expand.grid(1:pair[1], 1:pair[2]))
 
     SD_diff <- sqrt(2) * SD #since the fold changes are a linear combination of two normal factors
 
     #compute scores and converto to standar normal
     difference <- apply(pairs, 2, function(p) c1[, p[1]] - c2[, p[2]])
-    stats <- rowSums(difference)
-    stats <- stats / SD_diff
+    if(with.Z==T)
+    {
+      #sum of Z values
+      stats <- rowSums(difference)
+      stats <- stats / SD_diff
+    } else
+    {
+      stats <- pnorm(difference, sd=SD_diff) #transorfm to probability
+      stats <- stats - 0.5 # shift such that values below median get a negative score, raning from 0 to -0.5
+      stats <- rowSums(stats)
+    }
 
     #apply factor to minimize differences
     factors <- log2(rowSums(2^c1)) - log2(rowSums(2 ^ c2)) - log2(pair[1]) + log2(pair[2])
@@ -61,24 +66,23 @@ generate_distribution <- function(pair, SD=NULL, N=100000, out.dir=NULL)
 
     #compute scores for shifted data
     sim_difference <- apply(pairs, 2, function(p) c1[, p[1]] - c2[, p[2]])
-    sim_stats <- rowSums(sim_difference)
-    sim_stats <- sim_stats / SD_diff
-
-    #corrected
-    corr_difference <- apply(pairs, 2, function(p) c11[, p[1]] - c21[, p[2]])
-    corr_stats <- rowSums(corr_difference)
-    corr_stats <- corr_stats / SD_diff
-
+    
+    if(with.Z==T)
+    {
+      #sum of Z values
+      sim_stats <- rowSums(sim_difference)
+      sim_stats <- sim_stats / SD_diff
+    } else
+    {
+      sim_stats <- pnorm(sim_difference, sd=SD_diff)
+      sim_stats <- sim_stats - 0.5
+      sim_stats <- rowSums(sim_stats)
+    }
 
     # this is the difference of two N(0,1) scores, one shifted, one not
     #compute differences and remove if shifted score is more extreme than real score
     stat_diffs <- abs(stats) - abs(sim_stats)
     stat_diffs[stat_diffs < 0 ] <- 0
-
-
-    corr_diffs <- abs(stats) - abs(corr_stats)
-    corr_diffs[corr_diffs < 0] <- 0
-
 
     if(!is.null(out.dir))
     {
@@ -88,6 +92,5 @@ generate_distribution <- function(pair, SD=NULL, N=100000, out.dir=NULL)
     }
 
     stat_diffs <- sort(stat_diffs)
-    corr_diffs <- sort(corr_diffs)
     return(stat_diffs)
 }

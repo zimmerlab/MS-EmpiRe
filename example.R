@@ -31,7 +31,7 @@ data <- msEmpiRe::filter_detection_rate(data, condition=conditions)
 system.time(data <- msEmpiRe::normalize(data))
 
 #analysis
-system.time(result <- de.ana(data, with_fcs=T))
+system.time(result <- de.ana(data))
 
 
 ##############

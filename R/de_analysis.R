@@ -20,9 +20,7 @@ generate_foldchanges <-function(x, cond1, cond2)
 {
   c1 <- x[, cond1]
   c2 <- x[, cond2]
-  pairs <- t(expand.grid(1:sum(cond2), 1:sum(cond1)))
-  # pairs <- t(expand.grid(1:sum(cond1), 1:sum(cond2)))
-  pairs <- pairs[c(2,1), ]
+  pairs <- t(expand.grid(1:sum(cond1), 1:sum(cond2)))
 
   res <- apply(pairs, 2, function(pair) log2(c2[, pair[2]] / c1[, pair[1]]))
   return(res)
@@ -82,7 +80,7 @@ toZ_ranks <- function(peps, fcs, assignment, dists)
   }))
 }
 
-toZ <- function(peps, fcs, assignment, dists)
+toZ <- function(peps, fcs, assignment, dists, with.Z=T)
 {
   return(apply(cbind(peps, 1:length(peps)), 1, function(r)
     {
@@ -110,7 +108,12 @@ toZ <- function(peps, fcs, assignment, dists)
       }
 
       ranks <- ranks / (length(distrib) + 1)
-      ranks <- abs(qnorm(ranks))
+      
+      if(with.Z==T)
+      {
+        ranks <- abs(qnorm(ranks))
+      }
+      
       if(sum(!positive2) > 0)
       {
         ranks[!positive2] <- -ranks[!positive2]
@@ -122,7 +125,7 @@ toZ <- function(peps, fcs, assignment, dists)
 }
 
 #' @export
-de.ana <- function(data, out.dir=NULL, with_fcs=F)
+de.ana <- function(data, out.dir=NULL, with.Z=T)
 {
   message("starting differential analysis...")
   #build condition2sample mapping
@@ -143,7 +146,7 @@ de.ana <- function(data, out.dir=NULL, with_fcs=F)
   uniq_rep_pairs <- unique(ttt)
 
 
-  background_distributions <-lapply(split(uniq_rep_pairs, seq(nrow(uniq_rep_pairs))), function(w) generate_distribution(w, out.dir=out.dir))
+  background_distributions <-lapply(split(uniq_rep_pairs, seq(nrow(uniq_rep_pairs))), function(w) generate_distribution(w, out.dir=out.dir, with.Z=with.Z))
   names(background_distributions) <- apply(uniq_rep_pairs, 1, function(r) paste(r, collapse="v"))
   background_zeros <- lapply(background_distributions, function(d) sum(d==0))
 
@@ -169,8 +172,7 @@ de.ana <- function(data, out.dir=NULL, with_fcs=F)
   fcs <- generate_foldchanges(xprs, cond1, cond2)
 
   tmp <- cbind(fcs, pep2sds)
-
-
+  
   random_fcs <- t(apply(tmp, 1, function(r)
   {
     return(to_normal(r[1:ncol(fcs)], r[ncol(fcs)+1]))
@@ -185,42 +187,25 @@ de.ana <- function(data, out.dir=NULL, with_fcs=F)
 
   message("computing peptide level scores...")
 
-  test_scores <- cbind(toZ(1:nrow(fcs), fcs, assignment, dists), pep2fullvar)
-  test_scores <- cbind(test_scores,
-                       sapply(1:nrow(fcs), function(ii) sdsss[assignment[ii]]),
-                       sapply(1:nrow(fcs), function(ii) assignment[ii]))
+  zsums <- toZ(1:nrow(fcs), fcs, assignment, dists, with.Z=with.Z)
 
   medians <- apply(random_fcs, 1, function(r)
   {
-    ttt <- r[is.finite(r)]
-    ttt <- sort(ttt)
-    return(ttt[0.5*length(ttt) + 1])
+    valid_rfcs <- r[is.finite(r)]
+    valid_rfcs <- sort(valid_rfcs)
+    return(valid_rfcs[0.5*length(valid_rfcs) + 1])
   }
     )
-  test_scores <- cbind(test_scores, medians)
 
   fcs_shifted <- fcs - medians
 
-  shifted_scores <- toZ(1:nrow(fcs_shifted), fcs_shifted, assignment, dists)
+  shifted_scores <- toZ(1:nrow(fcs_shifted), fcs_shifted, assignment, dists, with.Z = with.Z)
 
-  test_scores <- cbind(test_scores, shifted_scores)
-
-  diffs <- abs(test_scores[, 1]) - abs(shifted_scores)
-  s <-sign(test_scores[, 1])
+  diffs <- abs(zsums) - abs(shifted_scores)
+  s <-sign(zsums)
   s[s==0] <- 1
 
-  ranks <- t(toZ_ranks(1:nrow(fcs), fcs_shifted, assignment, dists))
-  test_scores <- cbind(test_scores, ranks)
-  test_scores <- cbind(test_scores, fcs)
-
   bg_normed_score <- norm_background(diffs, pep2validpair, s, background_distributions, background_zeros)
-
-  test_scores <- cbind(test_scores, bg_normed_score)
-  test_scores <- cbind(test_scores, diffs)
-  test_scores <- cbind(test_scores, fcs_shifted)
-  test_scores <- cbind(test_scores, sapply(1:nrow(fcs), function(pep) length(dists[[assignment[pep]]]))  )
-  rownames(test_scores) <- rownames(exprs(data))
-  colnames(test_scores) <- c("score", "sd", "bg_sd", "bg_idx", "median", "bg_score", paste0("rank", 1:ncol(ranks)), paste0("FC", 1:ncol(fcs)), "bg_normed_score", "difference", paste0("FC_SH", 1:ncol(fcs)), "ctx_size")
 
   message("merging scores over proteins...")
   res <- t(apply(what, 1, function(protein)
@@ -270,10 +255,9 @@ de.ana <- function(data, out.dir=NULL, with_fcs=F)
         loc_fcs_shifted[taller, ] <- loc_fcs_shifted[taller, ] - range[2]
         }
 
-        loc_shifted_scores <- toZ(peptides[to_correct], matrix(loc_fcs_shifted[to_correct, ], nrow=sum(to_correct), ncol=ncol(fcs)), assignment, dists)
+        loc_shifted_scores <- toZ(peptides[to_correct], matrix(loc_fcs_shifted[to_correct, ], nrow=sum(to_correct), ncol=ncol(fcs)), assignment, dists, with.Z=with.Z)
 
-
-        loc_diffs <- abs(test_scores[peptides[to_correct], 1]) - abs(loc_shifted_scores)
+        loc_diffs <- abs(zsums[peptides[to_correct]]) - abs(loc_shifted_scores)
         loc_s <- s[peptides[to_correct]]
         loc_bg_normed_score <- norm_background(loc_diffs,
                                                 pep2validpair[peptides[to_correct]],
@@ -286,7 +270,7 @@ de.ana <- function(data, out.dir=NULL, with_fcs=F)
         bg_normed_score[peptides[to_correct]] <- bg_normed_score[peptides[to_correct]] * loc_s
       }
 
-      prot.s <- sum(test_scores[peptides, 1])
+      prot.s <- sum(zsums[peptides])
       prot.sd <- sqrt(sum(pep2fullvar[peptides]))
       prot.p.val <- 2 * (1.0 - pnorm(abs(prot.s), sd=prot.sd))
 
