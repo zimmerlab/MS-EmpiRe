@@ -277,17 +277,24 @@ de.ana <- function(data, out.dir=NULL, with.Z=T)
 
       ss <- sum(bg_normed_score[peptides])
       p.val <- 2 * (1.0 - pnorm(abs(ss), sd=sqrt(length(peptides))))
-      return(c(prot.id, ss, p.val, log2FC, prot.p.val, prot.sd, prot.s))
+      # return(c(prot.id, ss, p.val, log2FC, prot.p.val, prot.sd, prot.s))
+      return(c(ss, p.val, log2FC, prot.p.val, prot.sd, prot.s))
   }))
-  colnames(res) <- c("prot.id", "score", "p.val", "log2FC", "prot.p.val", "prot.sd", "prot.s")
+  print(apply(res, 2, class))
+  # colnames(res) <- c("prot.id", "score", "p.val", "log2FC", "prot.p.val", "prot.sd", "prot.s")
+  colnames(res) <- c("score", "p.val", "log2FC", "prot.p.val", "prot.sd", "prot.s")
   res <- as.data.frame(res)
+  
   res$p.adj <- p.adjust(res$p.val, method="BH")
   res$prot.p.adj <- p.adjust(res$prot.p.val, method="BH")
+  
+  # for(i in 2:ncol(res))
+  # {
+  #   res[, i] <- as.numeric(res[,i])
+  # }
+  res$prot.id <- what$prot.id
   rownames(res) <- res$prot.id
-  for(i in 2:ncol(res))
-  {
-    res[, i] <- as.numeric(res[,i])
-  }
+  
   message("finished analysis")
   return(res)
 }

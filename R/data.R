@@ -23,8 +23,11 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
                           prot.id.generator=NULL, remove.pattern=F)
 {
   message(sprintf("Reading data from %s", f))
-  data <- read.csv(f, sep=sep)
+  data <- read.csv(f, sep=sep, stringsAsFactors = FALSE)
 
+  #some LOCALE settings seem to read those as factor...
+  data[, id_col] <- as.character(data[, id_col])
+  
   if(!is.null(prot.id.generator))
   {
     prot.ids <- sapply(data[, id_col], prot.id.generator)
@@ -39,7 +42,8 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
   signal_cols <- grep(signal_pattern,colnames(data))
 
 
-  exprs <- as.matrix(data[, signal_cols])
+  # force numeric because of LOCALE...
+  exprs <- as.matrix(apply(data[, signal_cols], 2, as.numeric))
 
   if(remove.pattern==T)
   {
@@ -63,13 +67,13 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
 
   if(!is.null(prot.id.col))
   {
-    res["prot.id"] <- res[prot.id.col]
+    res["prot.id"] <- as.character(res[prot.id.col])
     res[prot.id.col] <- NULL
   }
   if(!is.null(prot.id.generator))
   {
     prot_col <- sapply(rownames(exprs), prot.id.generator)
-    f_data["prot.id"] <- prot_col
+    f_data["prot.id"] <- as.character(prot_col)
   }
 
   fData(res) <- f_data
