@@ -283,7 +283,7 @@ de.ana <- function(data, out.dir=NULL, with.Z=T)
   print(apply(res, 2, class))
   # colnames(res) <- c("prot.id", "score", "p.val", "log2FC", "prot.p.val", "prot.sd", "prot.s")
   colnames(res) <- c("score", "p.val", "log2FC", "prot.p.val", "prot.sd", "prot.s")
-  res <- as.data.frame(res)
+  res <- as.data.frame(res, stringsAsFactors=FALSE)
   
   res$p.adj <- p.adjust(res$p.val, method="BH")
   res$prot.p.adj <- p.adjust(res$prot.p.val, method="BH")

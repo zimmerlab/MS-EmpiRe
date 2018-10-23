@@ -25,8 +25,6 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
   message(sprintf("Reading data from %s", f))
   data <- read.csv(f, sep=sep, stringsAsFactors = FALSE)
 
-  #some LOCALE settings seem to read those as factor...
-  data[, id_col] <- as.character(data[, id_col])
   
   if(!is.null(prot.id.generator))
   {
@@ -42,9 +40,6 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
   signal_cols <- grep(signal_pattern,colnames(data))
 
 
-  # force numeric because of LOCALE...
-  exprs <- as.matrix(apply(data[, signal_cols], 2, as.numeric))
-
   if(remove.pattern==T)
   {
     colnames(exprs) <- gsub(signal_pattern, "", colnames(exprs))
@@ -57,7 +52,7 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
   rownames(f_data) <- ids
 
 
-  p_data <- read.csv(sample.mapping, sep=sep, header=T, row.names = 1)
+  p_data <- read.csv(sample.mapping, sep=sep, header=T, row.names = 1, stringsAsFactors = FALSE)
   p_data <- as.data.frame(p_data[colnames(exprs), ])
   rownames(p_data) <- colnames(exprs)
   colnames(p_data) <- c("condition")
@@ -86,7 +81,7 @@ read.EB <- function(dir, expression="exprs.txt", pheno="p_data.txt", feature="f_
   data <- Biobase::readExpressionSet(exprsFile = file.path(dir, expression),
                      phenoDataFile = file.path(dir, pheno),
                      sep=sep)
-  fData(data) <- read.csv(file.path(dir, feature), sep="\t")
+  fData(data) <- read.csv(file.path(dir, feature), sep="\t", stringsAsFactors = FALSE)
 
   tmp <- fData(data)
   rownames(tmp) <-  tmp[,1]
