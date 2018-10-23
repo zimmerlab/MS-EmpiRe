@@ -25,6 +25,8 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
   message(sprintf("Reading data from %s", f))
   data <- read.csv(f, sep=sep, stringsAsFactors = FALSE)
 
+  #some LOCALE settings seem to read those as factor...
+  data[, id_col] <- as.character(data[, id_col])
   
   if(!is.null(prot.id.generator))
   {
@@ -39,6 +41,9 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
 
   signal_cols <- grep(signal_pattern,colnames(data))
 
+
+  # force numeric because of LOCALE...
+  exprs <- as.matrix(apply(data[, signal_cols], 2, as.numeric))
 
   if(remove.pattern==T)
   {
