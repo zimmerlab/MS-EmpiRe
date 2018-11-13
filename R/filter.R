@@ -39,7 +39,8 @@ filter_detection_rate <- function(data, rate=2, condition=NULL)
   samples_to_keep <- rowSums(condition) > 0
 
   exp <- exprs(data)[f, samples_to_keep]
-  f_dat <- fData(data)[f, ]
+  f_dat <- data.frame(fData(data)[f, ])
+  colnames(f_dat) <- colnames(fData(data))
   p_dat <- data.frame(condition=pData(data)$condition[samples_to_keep], row.names=rownames(pData(data))[samples_to_keep])
   p_dat <- Biobase::AnnotatedDataFrame(p_dat)
   r <- Biobase::ExpressionSet(exp, p_dat)

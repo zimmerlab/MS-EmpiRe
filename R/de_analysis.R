@@ -16,13 +16,33 @@
 
 
 
-generate_foldchanges <-function(x, cond1, cond2)
+generate_foldchanges <-function(x, cond1, cond2, remove_na=FALSE, as_v=FALSE)
 {
-  c1 <- x[, cond1]
-  c2 <- x[, cond2]
-  pairs <- t(expand.grid(1:sum(cond1), 1:sum(cond2)))
+  
+  c1 <- x
+  c2 <- x
+  pairs <- combn(1:ncol(x), 2)
+  
+  if(!is.null(cond1))
+  {
+    c1 <- matrix(x[, cond1], ncol=sum(cond1), nrow=nrow(x))
+    c2 <- matrix(x[, cond2], ncol=sum(cond2), nrow=nrow(x))
+    
+    pairs <- t(expand.grid(1:sum(cond1), 1:sum(cond2)))
+  }
 
   res <- apply(pairs, 2, function(pair) log2(c2[, pair[2]] / c1[, pair[1]]))
+  
+  if(as_v==TRUE)
+  {
+    res <- as.vector(res)
+  }
+  
+  if(remove_na==TRUE)
+  {
+    res <- res[is.finite(res)]
+  }
+  
   return(res)
 }
 
@@ -125,7 +145,7 @@ toZ <- function(peps, fcs, assignment, dists, with.Z=T)
 }
 
 #' @export
-de.ana <- function(data, out.dir=NULL, with.Z=T)
+de.ana <- function(data, out.dir=NULL, with.Z=TRUE)
 {
   message("starting differential analysis...")
   #build condition2sample mapping
