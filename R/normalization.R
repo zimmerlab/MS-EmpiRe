@@ -15,41 +15,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-get_foldchanges <- function(mat, c1=NULL, c2=NULL)
-{
-    tmp1 <- mat
-    tmp2 <- mat
-    pairs <- combn(1:ncol(mat), 2)
-
-    if(!is.null(c1))
-    {
-      tmp1 <- matrix(mat[, c1], nrow=nrow(mat), ncol=sum(c1))
-      tmp2 <- matrix(mat[, c2], nrow=nrow(mat), ncol=sum(c2))
-
-      pairs <- t(expand.grid(1:sum(c1), 1:sum(c2)))
-    }
-
-    fcs <- as.vector(apply(pairs, 2, function(pair)
-      {
-        return(log2(tmp2[, pair[2]] / tmp1[,pair[1]]))
-    }))
-    f <- is.na(fcs) | is.infinite(fcs) | is.null(fcs)
-    fcs <- fcs[!f]
-    return(fcs)
-}
-
 get_error <- function(mat, c1=NULL, c2=NULL)
 {
-    fcs <- get_foldchanges(mat, c1, c2)
-
-    shift <- median(fcs)
-    return(sd(fcs - shift))
+    fcs <- generate_foldchanges(mat, c1, c2, remove_na=TRUE, as_v=TRUE)
+    return(sd(fcs))
 }
 
 
 shift <- function(mat, c1 , c2)
 {
-    shift_par <- median(get_foldchanges(mat, c1, c2))
+    shift_par <- median(generate_foldchanges(mat, c1, c2, remove_na=TRUE, as_v=TRUE))
     return(mat[, c2] * (2 ^ (-shift_par)))
 }
 
@@ -169,7 +144,7 @@ normalize <- function(data, out.dir=NULL)
   SD <- max(get_error(x[, cond1]), max(get_error(x[, cond2])))
   print(get_error(x[, cond1]))
   print(get_error(x[, cond2]))
-  fcs <- get_foldchanges(x, cond1, cond2)
+  fcs <- generate_foldchanges(x, cond1, cond2, remove_na=TRUE, as_v=TRUE)
   print("detecting mode")
   mode <- detect_mode(fcs, SD)
   print(sprintf("mode: %.g", mode))
