@@ -6,14 +6,14 @@ library(PerfMeas)
 library(Biobase)
 
 
-############
-# ANALYSIS #
-############
+#########################
+# DIFFERENTIAL ANALYSIS #
+#########################
 
 f <- system.file("extdata", "c1_c3.data", package = "msEmpiRe")
 p <- system.file("extdata", "c1_c3.pdata", package = "msEmpiRe")
 
-#loading data from installed data sets
+#loading data from installed data sets. The dataset is the yeast spike-in benchmarking data of O'Connell et al., as discussed in the paper
 data <- msEmpiRe::read.standard(f, p,
                                 prot.id.generator=function(pep) unlist(strsplit(pep, "\\."))[1],
                                 signal_pattern="c.*rep.*")
@@ -27,18 +27,22 @@ conditions <- conditions[, c(1,2)]
 #removing peptides that are detected in less than 2 samples per condition
 data <- msEmpiRe::filter_detection_rate(data, condition=conditions)
 
-#normalize
+#normalize, system.time is just to measure the time of processing
 system.time(data <- msEmpiRe::normalize(data))
 
-#analysis
+#main analysis, system.time is just to measure the time of processing
 system.time(result <- de.ana(data))
 
 
 ##############
 # EVALUATION #
 ##############
+#as the data we have analysed is a benchmarking set, with known fold changes applied to a subset of the proteins
+#(see paper for more detail),
+#we can now evaluate the differential analysis, i.e. extract measures like precision, recall etc.
+#all proteins are labelled, wether they are actually changing ("true"), or not ("false") 
 
-#extracting labels from, aggregation per protein
+#extracting the labels,aggregate per protein
 tmp <- fData(data)
 tmp$is_true <- sapply(tmp$is_true, function(val)
   {if(val=="true"){return(1)}
@@ -64,6 +68,8 @@ result$label <- tmp$is_true
 
 min_fc <- 0.35
 scores <- cbind(colnames(result)[grep("p.val", colnames(result))], colnames(result)[grep("p.adj", colnames(result))])
+
+#print out the scores of the evaluation
 apply(scores, 1, function(score)
 {
   print(score)
