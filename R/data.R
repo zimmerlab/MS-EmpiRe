@@ -15,19 +15,24 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 #' @import Biobase
 
 #' @export
-read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", id_col = 1, prot.id.col=NULL,
+read.standard <- function(f, sample.mapping, signal_pattern="c", sep="\t", id_col = 1, prot.id.col=NULL,
                           prot.id.generator=NULL, remove.pattern=F)
 {
+  if((!is.null(prot.id.col)) && (!is.null(prot.id.generator)))
+  {
+    stop("both prot.id.generator and prot.id.col were not NULL. Please enter only one of theses two arguments")
+  }
+  
   message(sprintf("Reading data from %s", f))
+  
   data <- read.csv(f, sep=sep, stringsAsFactors = FALSE)
 
-  #some LOCALE settings seem to read those as factor...
   data[, id_col] <- as.character(data[, id_col])
   
+  # reorder data by prot.id
   if(!is.null(prot.id.generator))
   {
     prot.ids <- sapply(data[, id_col], prot.id.generator)
@@ -41,8 +46,6 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
 
   signal_cols <- grep(signal_pattern,colnames(data))
 
-
-  # force numeric because of LOCALE...
   exprs <- as.matrix(apply(data[, signal_cols], 2, as.numeric))
 
   if(remove.pattern==T)
@@ -52,13 +55,13 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
   rownames(exprs) <- ids
 
 
-  f_data <- as.data.frame(data[, setdiff(1:ncol(data), c(signal_cols, id_col))])
+  f_data <- as.data.frame(data[, setdiff(1:ncol(data), c(signal_cols, id_col))], stringsAsFactors=FALSE)
   colnames(f_data) <- colnames(data)[setdiff(1:ncol(data), c(signal_cols, id_col))]
   rownames(f_data) <- ids
 
 
   p_data <- read.csv(sample.mapping, sep=sep, header=T, row.names = 1, stringsAsFactors = FALSE)
-  p_data <- as.data.frame(p_data[colnames(exprs), ])
+  p_data <- as.data.frame(p_data[colnames(exprs), ], stringsAsFactors=FALSE)
   rownames(p_data) <- colnames(exprs)
   colnames(p_data) <- c("condition")
   p_data <- Biobase::AnnotatedDataFrame(p_data)
@@ -67,8 +70,7 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
 
   if(!is.null(prot.id.col))
   {
-    res["prot.id"] <- as.character(res[prot.id.col])
-    res[prot.id.col] <- NULL
+    f_data["prot.id"] <- as.character(f_data[, prot.id.col])
   }
   if(!is.null(prot.id.generator))
   {
@@ -81,22 +83,47 @@ read.standard <- function(f, sample.mapping=NULL, signal_pattern="c", sep="\t", 
 }
 
 #' @export
-read.EB <- function(dir, expression="exprs.txt", pheno="p_data.txt", feature="f_data.txt", sep="\t")
+read.EB <- function(dir, expression="exprs.txt", pheno="p_data.txt", feature="f_data.txt", sep="\t", header=F)
 {
-  data <- Biobase::readExpressionSet(exprsFile = file.path(dir, expression),
-                     phenoDataFile = file.path(dir, pheno),
-                     sep=sep)
-  fData(data) <- read.csv(file.path(dir, feature), sep="\t", stringsAsFactors = FALSE)
-
-  tmp <- fData(data)
-  rownames(tmp) <-  tmp[,1]
-  tmp[,1] <- NULL
-  fData(data) <- tmp
-  return(data)
+  
+  exprs <- as.matrix(read.csv(file.path(dir, expression), sep="\t", header=header, stringsAsFactors = FALSE))
+  
+  pdat <- read.csv(file.path(dir, pheno), sep="\t", stringsAsFactors = FALSE, header=header)
+  if(ncol(pdat) != 2)
+  {
+    stop("pheno data file should only contain two columns, sample and condition!")
+  }
+  if(nrow(pdat) != ncol(exprs))
+  {
+    stop("number of samples in pheno data file and exprs file are not the same!")
+  }
+  
+  fdat <- read.csv(file.path(dir, feature), sep="\t", header=header, stringsAsFactors = FALSE)
+  
+  if(nrow(fdat) != nrow(exprs))
+  {
+    stop("number of features in feature data file and exprs file are not the same!")
+  }
+  
+  colnames(pdat) <- c("sample", "condition")
+  rownames(pdat) <- pdat$sample
+  
+  rownames(fdat) <- fdat[, 1]
+  fdat$prot.id <- rownames(fdat)
+  
+  colnames(exprs) <- rownames(pdat)
+  rownames(exprs) <- rownames(fdat)
+  
+  res <- Biobase::ExpressionSet(exprs, Biobase::AnnotatedDataFrame(pdat))
+  fData(res) <- fdat
+  return(res)
 }
 
+
+
+
 #' @export
-read.MaxQuant <- function(peptides, sep="\t", sample.mapping=NULL, feature.names="id")
+read.MaxQuant <- function(peptides, sample.mapping, sep="\t", feature.names="id")
 {
   return(read.standard(peptides,
                        sample.mapping=sample.mapping,
