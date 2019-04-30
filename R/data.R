@@ -19,7 +19,7 @@
 
 #' @export
 read.standard <- function(f, sample.mapping, signal_pattern="c", sep="\t", id_col = 1, prot.id.col=NULL,
-                          prot.id.generator=NULL, remove.pattern=F)
+                          prot.id.generator=NULL, remove.pattern=F, comment.char="#")
 {
   if((!is.null(prot.id.col)) && (!is.null(prot.id.generator)))
   {
@@ -28,7 +28,7 @@ read.standard <- function(f, sample.mapping, signal_pattern="c", sep="\t", id_co
   
   message(sprintf("Reading data from %s", f))
   
-  data <- read.csv(f, sep=sep, stringsAsFactors = FALSE)
+  data <- read.csv(f, sep=sep, stringsAsFactors = FALSE, comment.char=comment.char)
 
   data[, id_col] <- as.character(data[, id_col])
   
