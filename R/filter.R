@@ -30,7 +30,7 @@ filter_detection_rate <- function(data, rate=2, condition=NULL)
     condition <- extract_conditions(data)
   }
 
-  s <- (x > 0) %*% condition
+  s <- (x > 0 & !is.na(x)) %*% condition
 
   f <- apply(s >= rate, 1, all)
 
