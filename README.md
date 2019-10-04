@@ -70,10 +70,9 @@ For the detection of differential proteins, run the function `de.ana(data)` wher
 
 ## License
 MS-EmpiRe is released under the GNU Affero General Public License. See LICENSE for further details.
+
 ## References
-
+        
 	[1] Ammar, C.*, Gruber, M.*, Csaba, G.*, Zimmer, R. (2019).
-	    MS-EmpiRe utilizes peptide-level noise distributions for ultra sensitive detection of differentially abundant proteins.
-	    bioRxiv, doi: 10.1101/514000
-
-
+	    MS-EmpiRe Utilizes Peptide-level Noise Distributions for Ultra-sensitive Detection of Differentially Expressed Proteins.
+	    Mol. Cell Proteomics, 18(9), 1880-92.  doi:10.1074/mcp.RA119.001509 
