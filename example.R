@@ -30,6 +30,9 @@ data <- msEmpiRe::filter_detection_rate(data, condition=conditions)
 #normalize, system.time is just to measure the time of processing
 system.time(data <- msEmpiRe::normalize(data))
 
+#required if we want to reproduce the analysis
+set.seed(1234)
+
 #main analysis, system.time is just to measure the time of processing
 system.time(result <- de.ana(data))
 
